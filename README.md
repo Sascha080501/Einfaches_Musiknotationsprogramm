@@ -26,12 +26,6 @@ Die Anwendung wurde vollständig als **Single-Page-Webanwendung** umgesetzt und 
 
 Die Notenpositionierung erfolgt programmatisch durch Berechnung der vertikalen Lage im Notensystem, basierend auf Tonhöhe und Notenwert. Die Audioausgabe wird synthetisch erzeugt, wodurch keine externen Sounddateien benötigt werden.
 
-## Kontext der Masterarbeit
-
-Dieses Programm wurde im Rahmen einer Masterarbeit entwickelt und ist Bestandteil der praktischen Umsetzung der dort behandelten Fragestellungen. Ziel war es, ein funktionales und zugleich reduziertes System zur digitalen Musiknotation zu entwerfen, das insbesondere mikrotonale Strukturen berücksichtigt.
-
-Die Anwendung dient dabei als prototypisches Beispiel für die Verbindung von musiktheoretischen Anforderungen mit moderner Webtechnologie.
-
 ## Nutzung
 
 Die Anwendung kann direkt im Browser geöffnet werden:
