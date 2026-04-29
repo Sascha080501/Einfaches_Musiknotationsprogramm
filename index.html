@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Einfaches Musiknotationsprogramm</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg:#eef2ff; --bg2:#f8fafc; --panel:rgba(255,255,255,.86); --ink:#0f172a;
+      --muted:#64748b; --line:#dbe3ef; --line-dark:#0f172a; --accent:#6366f1;
+      --accent-2:#14b8a6; --danger:#e11d48; --shadow:0 24px 70px rgba(15,23,42,.12);
+      --soft-shadow:0 10px 30px rgba(15,23,42,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; min-height:100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:radial-gradient(circle at 12% -10%, rgba(99,102,241,.22), transparent 32rem),
+                 radial-gradient(circle at 90% 0%, rgba(20,184,166,.18), transparent 28rem),
+                 linear-gradient(180deg, var(--bg), var(--bg2));
+      color:var(--ink);
+    }
+    header {
+      padding:22px clamp(16px, 3vw, 34px) 18px; position:sticky; top:0; z-index:5;
+      backdrop-filter: blur(18px); background:rgba(248,250,252,.72);
+      border-bottom:1px solid rgba(219,227,239,.8);
+    }
+    .topbar { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; max-width:1240px; margin:0 auto 16px; }
+    .brand { display:flex; align-items:center; gap:13px; }
+    .logo { width:44px; height:44px; border-radius:16px; display:grid; place-items:center; color:white; font-size:25px; font-weight:800; background:linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow:0 14px 30px rgba(99,102,241,.32); }
+    h1 { margin:0; font-size:clamp(22px, 3vw, 32px); letter-spacing:-.04em; line-height:1.05; }
+    .subtitle { margin:4px 0 0; color:var(--muted); font-size:14px; }
+    .toolbar { max-width:1240px; margin:0 auto; display:flex; flex-wrap:wrap; gap:11px; align-items:end; padding:14px; border:1px solid rgba(219,227,239,.9); border-radius:24px; background:var(--panel); box-shadow:var(--soft-shadow); }
+    .group { display:flex; flex-direction:column; gap:6px; }
+    label { font-size:11px; font-weight:750; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+    select, button { font:inherit; border:1px solid var(--line); background:rgba(255,255,255,.95); color:var(--ink); border-radius:14px; padding:10px 12px; min-height:42px; outline:none; transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease; }
+    select { min-width:126px; }
+    #accidental { min-width:245px; }
+    select:focus, button:focus-visible { border-color:var(--accent); box-shadow:0 0 0 4px rgba(99,102,241,.14); }
+    button { cursor:pointer; font-weight:750; }
+    button:hover { transform:translateY(-1px); box-shadow:0 10px 22px rgba(15,23,42,.10); }
+    button.primary { background:linear-gradient(135deg, var(--accent), #8b5cf6); color:white; border-color:transparent; box-shadow:0 12px 28px rgba(99,102,241,.25); }
+    button.danger { color:white; background:linear-gradient(135deg, var(--danger), #fb7185); border-color:transparent; }
+    button:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+    main { padding:24px clamp(16px, 3vw, 34px) 34px; }
+    .card { max-width:1240px; margin:0 auto; background:var(--panel); border:1px solid rgba(219,227,239,.95); border-radius:30px; box-shadow:var(--shadow); overflow:hidden; }
+    #scoreWrap { overflow:auto; padding:22px; background:linear-gradient(90deg, rgba(99,102,241,.05) 1px, transparent 1px), linear-gradient(0deg, rgba(99,102,241,.05) 1px, transparent 1px); background-size:26px 26px; }
+    svg { display:block; min-width:900px; background:linear-gradient(180deg, #ffffff, #fbfdff); border:1px solid #edf2f7; border-radius:22px; box-shadow:inset 0 1px 0 rgba(255,255,255,.95), 0 16px 40px rgba(15,23,42,.08); }
+    .hint { max-width:1240px; margin:14px auto 0; color:var(--muted); font-size:14px; padding:0 4px; }
+    .selected .notehead, .selected .rest, .selected .acc, .selected .stem, .selected .flag { stroke:var(--accent); fill:var(--accent); }
+    .selected .open { fill:white; }
+    .staff-line { stroke:var(--line-dark); stroke-width:1.4; opacity:.9; }
+    .ledger { stroke:var(--line-dark); stroke-width:1.4; }
+    .notehead { fill:#0f172a; stroke:#0f172a; stroke-width:1.6; }
+    .open { fill:white; }
+    .stem, .flag { stroke:#0f172a; stroke-width:1.8; fill:none; stroke-linecap:round; }
+    .rest, .acc, .clef { fill:#0f172a; font-family: Georgia, 'Times New Roman', serif; dominant-baseline: middle; text-anchor: middle; }
+    .clef { opacity:.92; }
+    .durationText { fill:#64748b; font-size:11px; text-anchor:middle; font-weight:650; }
+    .clickzone { fill:transparent; cursor:pointer; }
+    @media (max-width:720px) { header { position:static; } .topbar { align-items:flex-start; } .toolbar { border-radius:20px; } select, button { width:100%; } .group { flex:1 1 180px; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">♪</div>
+      <div>
+        <h1>Musiknotation</h1>
+        <p class="subtitle">Noten setzen, Vierteltöne hören, direkt abspielen.</p>
+      </div>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="group">
+      <label>Typ</label>
+      <select id="kind">
+        <option value="note">Note</option>
+        <option value="rest">Pause</option>
+      </select>
+    </div>
+    <div class="group">
+      <label>Dauer</label>
+      <select id="duration">
+        <option value="1">Ganze</option>
+        <option value="0.5">Halbe</option>
+        <option value="0.25" selected>Viertel</option>
+        <option value="0.125">Achtel</option>
+      </select>
+    </div>
+    <div class="group" id="pitchGroup">
+      <label>Ton</label>
+      <select id="pitch"></select>
+    </div>
+    <div class="group" id="accGroup">
+      <label>Akzidenz</label>
+      <select id="accidental">
+        <option value="0" selected>keins</option>
+        <option value="sharp">♯ Halbton höher (+100 Cent)</option>
+        <option value="flat">♭ Halbton tiefer (-100 Cent)</option>
+        <option value="natural">♮ Auflösung</option>
+        <option value="quarter-up">𝄲 Viertelton höher (+50 Cent)</option>
+        <option value="quarter-down">𝄳 Viertelton tiefer (-50 Cent)</option>
+      </select>
+    </div>
+    <button id="add" class="primary">Einfügen</button>
+    <button id="replace">Auswahl ersetzen</button>
+    <button id="delete" class="danger">Löschen</button>
+    <button id="clear" class="danger">Alles löschen</button>
+    <button id="play" class="primary">▶ Abspielen</button>
+    <button id="stop">■ Stop</button>
+  </div>
+</header>
+<main>
+  <div class="card"><div id="scoreWrap"><svg id="score" width="1200" height="260" role="img" aria-label="Notensystem"></svg></div></div>
+  <p class="hint">Klicke ein Zeichen im Notensystem an, um es zu markieren. Akzidenzien sind bewusst separat wählbar und werden nur gesetzt, wenn du sie auswählst.</p>
+</main>
+<script>
+(() => {
+  const svg = document.getElementById('score');
+  const kindEl = document.getElementById('kind');
+  const durEl = document.getElementById('duration');
+  const pitchEl = document.getElementById('pitch');
+  const accEl = document.getElementById('accidental');
+  const pitchGroup = document.getElementById('pitchGroup');
+  const accGroup = document.getElementById('accGroup');
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const yBase = 150;       // unterste Linie im Violinschlüssel: E4
+  const step = 6;          // Abstand von Tonstufe zu Tonstufe; Linienabstand = 2 * step
+  const x0 = 86;
+  const noteGap = 58;
+  let items = [];
+  let selected = -1;
+  let audioCtx = null;
+  let playingNodes = [];
+
+  const pitches = [
+    // Positionen relativ zur untersten Linie des Violinschlüssels: E4 = 0.
+    // Jede diatonische Stufe verschiebt die Note um einen halben Linienabstand.
+    ['C5', 5, 523.251], ['B4', 4, 493.883], ['A4', 3, 440.000], ['G4', 2, 391.995],
+    ['F4', 1, 349.228], ['E4', 0, 329.628], ['D4', -1, 293.665], ['C4', -2, 261.626],
+    ['B3', -3, 246.942], ['A3', -4, 220.000]
+  ];
+  pitches.forEach(([name]) => pitchEl.append(new Option(name, name)));
+  pitchEl.value = 'C4';
+
+  const pitchMap = Object.fromEntries(pitches.map(p => [p[0], {pos:p[1], freq:p[2]}]));
+  const durName = { '1':'Ganze', '0.5':'Halbe', '0.25':'Viertel', '0.125':'Achtel' };
+  const accidentals = {
+    '0': {text:'', cents:0},
+    'natural': {text:'♮', cents:0},
+    'sharp': {text:'♯', cents:100},
+    'flat': {text:'♭', cents:-100},
+    'quarter-up': {text:'𝄲', cents:50},
+    'quarter-down': {text:'𝄳', cents:-50}
+  };
+
+  function el(name, attrs = {}, text = '') {
+    const n = document.createElementNS(NS, name);
+    for (const [k,v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text) n.textContent = text;
+    return n;
+  }
+  function yFor(pitch) { return yBase - pitchMap[pitch].pos * step; }
+  function centsFactor(cents) { return Math.pow(2, cents / 1200); }
+  function currentItem() {
+    return {
+      kind: kindEl.value,
+      duration: Number(durEl.value),
+      pitch: pitchEl.value,
+      accidental: accEl.value
+    };
+  }
+  function durationSeconds(d) { return 1.8 * d; } // whole note = 1.8s
+
+  function drawStaff() {
+    for (let i=0; i<5; i++) svg.append(el('line', {x1:30, y1:yBase - i*12, x2:1160, y2:yBase - i*12, class:'staff-line'}));
+    svg.append(el('text', {x:52, y:yBase-24, class:'clef', 'font-size':54}, '𝄞'));
+  }
+  function drawRest(g, x, d) {
+    const y = yBase - 24;
+    let symbol = '𝄽';
+    if (d === 1) symbol = '𝄻';
+    if (d === 0.5) symbol = '𝄼';
+    if (d === 0.25) symbol = '𝄽';
+    if (d === 0.125) symbol = '𝄾';
+    g.append(el('text', {x, y, class:'rest', 'font-size':34}, symbol));
+  }
+  function drawNote(g, x, item) {
+    const y = yFor(item.pitch);
+    const d = item.duration;
+    const open = d === 1 || d === 0.5;
+    const acc = accidentals[item.accidental] || accidentals['0'];
+    if (acc.text) g.append(el('text', {x:x-25, y:y+1, class:'acc', 'font-size':25}, acc.text));
+    const pos = pitchMap[item.pitch].pos;
+    for (let p = -2; p >= pos; p -= 2) {
+      const ly = yBase - p * step;
+      g.append(el('line', {x1:x-14, y1:ly, x2:x+14, y2:ly, class:'ledger'}));
+    }
+    g.append(el('ellipse', {cx:x, cy:y, rx:9, ry:6.3, transform:`rotate(-20 ${x} ${y})`, class:`notehead ${open ? 'open' : ''}`}));
+    if (d !== 1) {
+      g.append(el('line', {x1:x+8, y1:y, x2:x+8, y2:y-42, class:'stem'}));
+      if (d === 0.125) g.append(el('path', {d:`M ${x+8} ${y-42} C ${x+24} ${y-33}, ${x+19} ${y-20}, ${x+10} ${y-18}`, class:'flag'}));
+    }
+  }
+  function render() {
+    svg.innerHTML = '';
+    svg.setAttribute('width', Math.max(1200, x0 + items.length * noteGap + 80));
+    drawStaff();
+    items.forEach((item, i) => {
+      const x = x0 + i * noteGap;
+      const g = el('g', {class: i === selected ? 'selected' : ''});
+      if (item.kind === 'rest') drawRest(g, x, item.duration); else drawNote(g, x, item);
+      g.append(el('text', {x, y:205, class:'durationText'}, durName[String(item.duration)]));
+      const hit = el('rect', {x:x-28, y:50, width:56, height:170, class:'clickzone'});
+      hit.addEventListener('click', () => { selected = i; render(); });
+      g.append(hit);
+      svg.append(g);
+    });
+  }
+  function addItem() { items.push(currentItem()); selected = items.length - 1; render(); }
+  function replaceItem() { if (selected >= 0) { items[selected] = currentItem(); render(); } }
+  function deleteItem() { if (selected >= 0) { items.splice(selected,1); selected = Math.min(selected, items.length-1); render(); } }
+  function clearItems() { stop(); items = []; selected = -1; render(); }
+  function syncKindUI() {
+    const isRest = kindEl.value === 'rest';
+    pitchGroup.style.display = isRest ? 'none' : 'flex';
+    accGroup.style.display = isRest ? 'none' : 'flex';
+  }
+  function stop() {
+    playingNodes.forEach(n => { try { n.stop(); } catch(e){} });
+    playingNodes = [];
+  }
+  async function play() {
+    stop();
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    let t = audioCtx.currentTime + 0.05;
+    items.forEach(item => {
+      const len = durationSeconds(item.duration);
+      if (item.kind === 'note') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        const acc = accidentals[item.accidental] || accidentals['0'];
+        osc.frequency.setValueAtTime(pitchMap[item.pitch].freq * centsFactor(acc.cents), t);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + len * 0.92);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + len);
+        playingNodes.push(osc);
+      }
+      t += len;
+    });
+  }
+
+  document.getElementById('add').addEventListener('click', addItem);
+  document.getElementById('replace').addEventListener('click', replaceItem);
+  document.getElementById('delete').addEventListener('click', deleteItem);
+  document.getElementById('clear').addEventListener('click', clearItems);
+  document.getElementById('play').addEventListener('click', play);
+  document.getElementById('stop').addEventListener('click', stop);
+  kindEl.addEventListener('change', syncKindUI);
+
+  items = [];
+  selected = -1;
+  syncKindUI(); render();
+})();
+</script>
+</body>
+</html>
