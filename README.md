@@ -1,4 +1,4 @@
-# Musiknotationsprogramm (Web-App)
+# Einfaches Musiknotationsprogramm
 
 ## Überblick
 
